@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Page Title</title>
+<style>
+
+body{ background-color: ivory; }
+#canvas{border:1px solid red; margin:0 auto; }
+
+</style>
+</head>
+<body>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<h4 id='curve'>Q</h4>
+<canvas id="canvas" width=650 height=650></canvas>
+
+<script>
+var canvas=document.getElementById("canvas");
+var ctx=canvas.getContext("2d");
+
+var points=[];
+var startRad = 15;
+var endRad = 2;
+var startZ = 0;
+var endZ = 30;
+var numLoops = 3;
+var startAng = 3 * Math.PI / 2;
+
+// new variables
+var sampleTimes = 100000;
+var scale = 16;
+var xoffset = -20;
+var yoffset = -20;
+var zoffset = 0;
+
+drawGrid();
+
+// paint path
+var lineWidth = 3;
+sample();
+paintPath("darkgray", "black", "white");
+
+lineWidth = 1;
+sample();
+paintPath("yellow", "orange", "blue");
+
+function sample() {
+  for(var t=0;t<sampleTimes;t++){
+    var realT = t / sampleTimes;
+    var xyAtT=getSpiralXYatT(startRad, endRad, startZ, endZ, numLoops, startAng, realT);
+    var x=Math.floor(xyAtT.x);
+    var y=Math.floor(xyAtT.y);
+    var z=Math.floor(xyAtT.z);
+
+      var orthogonalVector = getUnit(getOrth(getSiralDerivativeAtT(startRad, endRad, startZ, endZ, numLoops, startAng, realT)));
+      for(var s = 0; s < lineWidth; s ++) {
+        var locAlongWidth = s - Math.floor(lineWidth/2);
+        var offsetVector = {
+          x: orthogonalVector.x*locAlongWidth,
+            y: orthogonalVector.y*locAlongWidth,
+            z: orthogonalVector.z*locAlongWidth
+        };
+        var finalPoint = {
+          x: xyAtT.x + offsetVector.x,
+            y: xyAtT.y + offsetVector.y,
+            z: xyAtT.z + offsetVector.z
+        };
+        points.push(finalPoint);
+
+    }
+  }
+}
+
+$('#curve').text('Quadratic Curve made up of '+points.length+' individual points');
+
+function paintPath(lightCol, darkCol, zTxtCol) {
+  // paint the path
+  visitedGraphPoints = [];
+  
+  for(var i=0;i<points.length;i++){
+    var x=points[i].x;
+    var y=points[i].y;
+    var z=points[i].z;
+    var graphX = Math.round((x-xoffset))*scale;
+    var graphY = Math.round((y-yoffset))*scale;
+    var graphZ = Math.round((z-zoffset)*2)/2;
+    ctx.fillStyle = (Math.round(x) + Math.round(y)) % 2 == 0? darkCol : lightCol;
+    ctx.strokeStyle = zTxtCol;
+    
+    if(visitedGraphPoints.findIndex(function(pointToCheck) {
+    return pointToCheck.x == graphX && pointToCheck.y == graphY;
+    }) == -1) {
+      visitedGraphPoints.push({x:graphX, y:graphY});
+      ctx.fillRect(graphX, graphY, scale, scale);
+      ctx.strokeText(graphZ, graphX + 0, graphY + scale/2);
+    }
+  }
+  // clear sample points
+  points=[];
+}
+//function graphPointIndex(pointToCheck) {
+//}
+
+function getSpiralXYatT(startRad, endRad, startZ, endZ, numLoops, startAng, T) {
+  var x = ((endRad - startRad)*T + startRad)*Math.cos(2*Math.PI*T*numLoops + startAng);
+  var y = ((endRad - startRad)*T + startRad)*Math.sin(2*Math.PI*T*numLoops + startAng);
+  var z = startZ + (endZ - startZ)*T;
+  return ({x:x,y:y,z:z});
+}
+
+function getSiralDerivativeAtT(startRad, endRad, startZ, endZ, numLoops, startAng, T) {
+  var sin = Math.sin(2*Math.PI*T*numLoops + startAng);
+  var cos = Math.cos(2*Math.PI*T*numLoops + startAng);
+  var x = (endRad - startRad)*cos - ((endRad - startRad)*T + startRad)*(2*Math.PI*numLoops*sin);
+  var y = (endRad - startRad)*sin + ((endRad - startRad)*T + startRad)*(2*Math.PI*numLoops*cos);
+  var z = 0;
+  return ({x:x,y:y,z:z});
+}
+
+function drawGrid() {
+
+  ctx.strokeStyle = "lightblue";
+    
+  // draw horizontal
+    for(var i = 1; i < Math.ceil( canvas.width / scale); i++) {
+      ctx.beginPath();
+        ctx.moveTo(i * scale, 0);
+        ctx.lineTo(i * scale, canvas.height);
+        ctx.stroke();
+    }
+    
+    // draw vertical
+    for(var i = 1; i < Math.ceil( canvas.height / scale); i++) {
+      ctx.beginPath();
+        ctx.moveTo(0, i * scale);
+        ctx.lineTo(canvas.width, i * scale);
+        ctx.stroke();
+    }
+}
+
+function getUnit(vector) {
+  var length = Math.sqrt(vector.x*vector.x + vector.y*vector.y + vector.z*vector.z);
+  return {
+      x: vector.x / length,
+      y: vector.y / length,
+      z: vector.z / length
+    };
+}
+
+function getOrth(vector) {
+  return {
+      x: -vector.y,
+      y: vector.x,
+        z: 0
+    };
+}
+
+</script>
+
+</body>
+</html>
+

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Page Title</title>
+<style>
+
+body{ background-color: ivory; }
+#canvas{border:1px solid red; margin:0 auto; }
+
+</style>
+</head>
+<body>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<h4 id='curve'>Q</h4>
+<canvas id="canvas" width=650 height=650></canvas>
+
+<script>
+var canvas=document.getElementById("canvas");
+var ctx=canvas.getContext("2d");
+
+var points=[];
+var radius = 10;
+var wobble = 0.30;
+var wobbleTimes = 3;
+var offsetAngle = 180 * Math.PI / 180;
+
+// new variables
+var sampleTimes = 25000;
+var scale = 10;
+var xoffset = -30;
+var yoffset = -30;
+
+drawGrid();
+
+// paint path
+var lineWidth = 5;
+sample();
+paintPath("darkgray", "black");
+
+lineWidth = 3;
+sample();
+paintPath("yellow", "orange");
+
+function sample() {
+  for(var t=0;t<sampleTimes;t++){
+  	var trigInnerValue = offsetAngle
+    	+ 2*Math.PI*realT*wobbleTimes;
+    var realT = t / sampleTimes;
+    var xyAtT=getCircleXYatT(radius, wobble, wobbleTimes
+    	, offsetAngle, realT);
+    var x=Math.floor(xyAtT.x);
+    var y=Math.floor(xyAtT.y);
+
+      var orthogonalVector = getUnit(getOrth(getCircleDerivativeAtT(radius, wobble
+      	, wobbleTimes, offsetAngle, realT)));
+      for(var s = 0; s < lineWidth; s ++) {
+        var locAlongWidth = s - Math.floor(lineWidth/2);
+        var offsetVector = {x: orthogonalVector.x*locAlongWidth, y: orthogonalVector.y*locAlongWidth};
+        var finalPoint = {x: xyAtT.x + offsetVector.x, y: xyAtT.y + offsetVector.y};
+        points.push(finalPoint);
+
+    }
+  }
+}
+
+$('#curve').text('Quadratic Curve made up of '+points.length+' individual points');
+
+function paintPath(lightCol, darkCol) {
+  // paint the path
+  for(var i=0;i<points.length;i++){
+    var x=points[i].x;
+    var y=points[i].y;
+    var graphX = Math.round((x-xoffset))*scale;
+    var graphY = Math.round((y-yoffset))*scale;
+    ctx.fillStyle = (Math.round(x) + Math.round(y)) % 2 == 0? darkCol : lightCol;
+    ctx.fillRect(graphX, graphY, scale, scale);
+  }
+  // clear sample points
+  points=[];
+}
+
+function getCircleXYatT(radius, wobble, wobbleTimes
+    	, offsetAngle ,T) {
+  //trigInnerValue = offsetAngle + 2*Math.PI*realT*wobbleTimes;
+  //radius*((1-wobble/2)+wobble*Math.sin(trigInnerValue))
+  var trigInnerValue = offsetAngle + 2*Math.PI*T*wobbleTimes;
+  var newRad = radius*((1-wobble/2)+wobble*Math.sin(trigInnerValue));
+  var x = newRad * Math.cos(2*Math.PI*T);
+  var y = newRad * Math.sin(2*Math.PI*T);
+  return ({x:x,y:y}) ;
+}
+
+function getCircleDerivativeAtT(radius, wobble, wobbleTimes
+    	, offsetAngle, T) {
+        
+  var x = radius * (2*Math.PI*wobbleTimes*wobble
+  	*Math.cos(offsetAngle + 2*Math.PI*T*wobbleTimes)
+    *Math.cos(2*Math.PI*T) - ((1-wobble/2) + wobble
+    *Math.sin(offsetAngle + 2*Math.PI*T*wobbleTimes))
+    *2*Math.PI*Math.sin(2*Math.PI*T));
+    
+  var y = radius * (2*Math.PI*wobbleTimes*wobble
+  	*Math.cos(offsetAngle + 2*Math.PI*T*wobbleTimes)
+    *Math.sin(2*Math.PI*T) + ((1-wobble/2) + wobble
+    *Math.sin(offsetAngle + 2*Math.PI*T*wobbleTimes))
+    *2*Math.PI*Math.cos(2*Math.PI*T));
+  //var x = -2*radius*Math.PI*Math.sin(2*Math.PI*T);
+  //var y = 2*radius*Math.PI*Math.cos(2*Math.PI*T);
+    return ({x:x,y:y}) ;
+}
+
+function drawGrid() {
+
+  ctx.strokeStyle = "lightblue";
+    
+  // draw horizontal
+    for(var i = 1; i < Math.ceil( canvas.width / scale); i++) {
+      ctx.beginPath();
+        ctx.moveTo(i * scale, 0);
+        ctx.lineTo(i * scale, canvas.height);
+        ctx.stroke();
+    }
+    
+    // draw vertical
+    for(var i = 1; i < Math.ceil( canvas.height / scale); i++) {
+      ctx.beginPath();
+        ctx.moveTo(0, i * scale);
+        ctx.lineTo(canvas.width, i * scale);
+        ctx.stroke();
+    }
+}
+
+function getUnit(vector) {
+  var length = Math.sqrt(vector.x*vector.x + vector.y*vector.y);
+  return {
+      x: vector.x / length,
+        y: vector.y / length
+    };
+}
+
+function getOrth(vector) {
+  return {
+      x: -vector.y,
+        y: vector.x
+    };
+}
+
+</script>
+
+</body>
+</html>
+
